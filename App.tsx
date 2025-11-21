@@ -14,6 +14,12 @@ const TOPICS = [
   "Casual Conversation"
 ];
 
+const DIFFICULTY_OPTIONS = [
+  { label: 'Simple', value: Difficulty.BEGINNER },
+  { label: 'Medium', value: Difficulty.INTERMEDIATE },
+  { label: 'Hard', value: Difficulty.ADVANCED },
+];
+
 function App() {
   const [appState, setAppState] = useState<AppState>(AppState.IDLE);
   const [selection, setSelection] = useState<UserSelection>({
@@ -163,15 +169,19 @@ function App() {
                     </p>
                  </div>
                  <div className="bg-[#161b22] p-6 rounded-xl border border-gray-800 opacity-70">
-                    <h3 className="text-white font-medium mb-2">Difficulty</h3>
-                    <div className="flex gap-2">
-                      {Object.values(Difficulty).map(d => (
+                    <h3 className="text-white font-medium mb-3">Difficulty Level</h3>
+                    <div className="grid grid-cols-3 gap-2">
+                      {DIFFICULTY_OPTIONS.map(opt => (
                         <button 
-                          key={d}
-                          onClick={() => setDifficulty(d)}
-                          className={`text-xs px-2 py-1 rounded border ${difficulty === d ? 'bg-gray-700 border-gray-500 text-white' : 'border-transparent text-gray-500'}`}
+                          key={opt.value}
+                          onClick={() => setDifficulty(opt.value)}
+                          className={`text-xs px-2 py-2 rounded border font-medium transition-all ${
+                            difficulty === opt.value 
+                            ? 'bg-gray-700 border-gray-500 text-white' 
+                            : 'border-gray-800 bg-gray-900/50 text-gray-500 hover:bg-gray-800'
+                          }`}
                         >
-                          {d}
+                          {opt.label}
                         </button>
                       ))}
                     </div>

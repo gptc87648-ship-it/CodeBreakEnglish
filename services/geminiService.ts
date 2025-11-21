@@ -24,7 +24,13 @@ export const generateLesson = async (
     Difficulty: ${difficulty}
 
     Please return structured JSON content.
-    For Vocabulary: Provide 3-5 sophisticated terms relevant to the topic.
+    
+    For Vocabulary: 
+    - Provide 3-5 sophisticated terms relevant to the topic.
+    - Include 'derivatives' (a list of 2-3 related word forms, e.g., noun/verb/adj).
+    - Include 'examples' (a list of 2-3 sentences showing usage in a technical context).
+    - Include 'visualPrompt' (a brief, descriptive text suitable for generating a minimalist icon or illustration of the concept).
+    
     For Grammar Fix: Provide 3 sentences with common errors developers make, and the correction.
     For Tech Reading: Provide 1 very short technical snippet (max 50 words) and a comprehension question.
     For Quiz: Provide 3 multiple choice questions.
@@ -45,7 +51,10 @@ export const generateLesson = async (
             correctAnswer: { type: Type.STRING, description: "The correct option, corrected sentence, or definition" },
             explanation: { type: Type.STRING, description: "Why this is correct or how to use the word" },
             context: { type: Type.STRING, description: "Example sentence or reading passage" },
-            term: { type: Type.STRING, description: "The specific word if vocabulary" }
+            term: { type: Type.STRING, description: "The specific word if vocabulary" },
+            derivatives: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Related word forms" },
+            examples: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Multiple example sentences" },
+            visualPrompt: { type: Type.STRING, description: "Prompt for image generation" }
           },
           required: ["id", "question", "explanation"]
         }
@@ -73,5 +82,28 @@ export const generateLesson = async (
   } catch (error) {
     console.error("Gemini API Error:", error);
     throw error;
+  }
+};
+
+export const generateImageForVocabulary = async (term: string, visualPrompt: string): Promise<string | null> => {
+  try {
+    const promptText = `Create a clean, minimalist, modern vector-style digital illustration representing the technical concept: "${term}". Context: ${visualPrompt}. The style should be suitable for a dark-mode application (avoid white backgrounds if possible, use deep colors). No text in the image.`;
+    
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash-image',
+      contents: {
+        parts: [{ text: promptText }]
+      }
+    });
+
+    for (const part of response.candidates?.[0]?.content?.parts || []) {
+      if (part.inlineData) {
+        return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+      }
+    }
+    return null;
+  } catch (error) {
+    console.error("Image Generation Error:", error);
+    return null;
   }
 };

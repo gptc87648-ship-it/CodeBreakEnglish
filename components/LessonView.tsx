@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { LessonContent, QuestionItem, LessonType } from '../types';
 import { Button } from './Button';
-import { CheckCircle2, XCircle, ArrowRight, BookOpen, Code2, RefreshCw } from 'lucide-react';
+import { generateImageForVocabulary } from '../services/geminiService';
+import { CheckCircle2, XCircle, ArrowRight, BookOpen, Code2, Image as ImageIcon, Layers } from 'lucide-react';
 
 interface LessonViewProps {
   lesson: LessonContent;
@@ -14,9 +15,38 @@ export const LessonView: React.FC<LessonViewProps> = ({ lesson, lessonType, onCo
   const [showAnswer, setShowAnswer] = useState(false);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [score, setScore] = useState(0);
+  
+  // Image state
+  const [vocabImage, setVocabImage] = useState<string | null>(null);
+  const [isImageLoading, setIsImageLoading] = useState(false);
 
   const currentItem: QuestionItem = lesson.items[currentIndex];
   const isLast = currentIndex === lesson.items.length - 1;
+
+  // Fetch image when item changes if it's a vocabulary lesson
+  useEffect(() => {
+    if (lessonType === LessonType.VOCABULARY && currentItem.visualPrompt && currentItem.term) {
+      let isMounted = true;
+      setVocabImage(null);
+      setIsImageLoading(true);
+      
+      generateImageForVocabulary(currentItem.term, currentItem.visualPrompt)
+        .then(base64 => {
+          if (isMounted) {
+            setVocabImage(base64);
+            setIsImageLoading(false);
+          }
+        })
+        .catch(() => {
+          if (isMounted) setIsImageLoading(false);
+        });
+
+      return () => { isMounted = false; };
+    } else {
+      setVocabImage(null);
+      setIsImageLoading(false);
+    }
+  }, [currentItem, lessonType]);
 
   const handleNext = () => {
     if (isLast) {
@@ -86,30 +116,69 @@ export const LessonView: React.FC<LessonViewProps> = ({ lesson, lessonType, onCo
     // VOCABULARY MODE
     if (lessonType === LessonType.VOCABULARY) {
       return (
-        <div className="space-y-6 text-center py-4">
-          <div className="inline-block p-3 bg-blue-900/30 rounded-full mb-2">
-             <BookOpen className="w-8 h-8 text-blue-400" />
+        <div className="space-y-6 text-center py-2">
+          {/* Image Section */}
+          <div className="flex justify-center mb-6">
+             {isImageLoading ? (
+               <div className="w-48 h-48 bg-gray-800 rounded-xl animate-pulse flex items-center justify-center border border-gray-700">
+                 <ImageIcon className="w-8 h-8 text-gray-600" />
+               </div>
+             ) : vocabImage ? (
+               <img 
+                 src={vocabImage} 
+                 alt={currentItem.term} 
+                 className="w-48 h-48 object-cover rounded-xl border-2 border-gray-700 shadow-2xl animate-in zoom-in-90 duration-500" 
+               />
+             ) : (
+               <div className="w-24 h-24 bg-blue-900/30 rounded-full flex items-center justify-center">
+                  <BookOpen className="w-10 h-10 text-blue-400" />
+               </div>
+             )}
           </div>
-          <h2 className="text-3xl font-bold text-white tracking-tight">{currentItem.term || currentItem.question}</h2>
+
+          <div className="space-y-2">
+             <h2 className="text-4xl font-bold text-white tracking-tight">{currentItem.term || currentItem.question}</h2>
+             {/* Derivatives */}
+             {currentItem.derivatives && currentItem.derivatives.length > 0 && (
+                <div className="flex justify-center gap-2 flex-wrap">
+                   {currentItem.derivatives.map((d, i) => (
+                     <span key={i} className="text-xs px-2 py-1 bg-gray-800 text-gray-400 rounded-md border border-gray-700 font-mono">
+                        {d}
+                     </span>
+                   ))}
+                </div>
+             )}
+          </div>
           
           {!showAnswer ? (
              <div className="h-32 flex items-center justify-center">
                 <Button onClick={revealAnswer} variant="secondary">Reveal Definition</Button>
              </div>
           ) : (
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
-                <p className="text-lg text-emerald-100 font-medium">{currentItem.correctAnswer}</p>
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 text-left mt-6">
+              <div className="bg-gray-800/80 p-5 rounded-xl border border-gray-700 shadow-lg">
+                <p className="text-xl text-emerald-100 font-medium text-center">{currentItem.correctAnswer}</p>
               </div>
               
-              {currentItem.context && (
-                <div className="text-left bg-gray-900 p-4 rounded-lg border-l-4 border-blue-500">
-                  <p className="text-xs uppercase tracking-wider text-gray-500 mb-1">Context / Example</p>
-                  <p className="text-gray-300 font-mono text-sm leading-relaxed">{currentItem.context}</p>
+              {/* Multiple Examples */}
+              {(currentItem.examples && currentItem.examples.length > 0) || currentItem.context ? (
+                <div className="bg-gray-900/50 p-5 rounded-xl border-l-4 border-blue-500 space-y-3">
+                  <p className="text-xs uppercase tracking-wider text-gray-500 flex items-center gap-2">
+                    <Layers className="w-3 h-3" /> Context & Usage
+                  </p>
+                  <div className="space-y-3">
+                     {currentItem.examples?.map((ex, idx) => (
+                       <p key={idx} className="text-gray-300 font-mono text-sm leading-relaxed pl-2 border-l border-gray-700">
+                         "{ex}"
+                       </p>
+                     )) || (
+                       <p className="text-gray-300 font-mono text-sm leading-relaxed">{currentItem.context}</p>
+                     )}
+                  </div>
                 </div>
-              )}
+              ) : null}
               
-              <div className="text-left">
+              <div className="text-center">
                  <p className="text-sm text-gray-400 italic">{currentItem.explanation}</p>
               </div>
             </div>

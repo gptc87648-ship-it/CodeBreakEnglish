@@ -27,6 +27,10 @@ export interface QuestionItem {
   explanation: string;
   context?: string; // For vocabulary (example sentence) or reading passage
   term?: string; // For vocabulary
+  // New rich content fields
+  derivatives?: string[]; // e.g., ["compile (verb)", "compilation (noun)"]
+  examples?: string[]; // Multiple example sentences
+  visualPrompt?: string; // Description for image generation
 }
 
 export interface LessonContent {
