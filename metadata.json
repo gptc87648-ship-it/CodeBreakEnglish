@@ -1,0 +1,7 @@
+{
+  "name": "Copy of CodeWait English",
+  "description": "A micro-learning English app designed for developers waiting for builds, deployments, or tests. Turn your wait time into language gains.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
