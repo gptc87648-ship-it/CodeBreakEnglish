@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { AppState, Difficulty, LessonContent, LessonType, UserSelection } from './types';
 import { generateLesson } from './services/geminiService';
